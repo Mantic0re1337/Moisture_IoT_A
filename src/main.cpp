@@ -4,6 +4,9 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
+#define LCD_WIRE_ONE 6
+#define LCD_WIRE_TWO 7
+
 hd44780_I2Cexp lcd; // declare lcd object: auto locate & auto config expander chip
 
 const int LCD_COLS = 16;
@@ -21,36 +24,62 @@ unsigned long lastTime = 0;
 // Set timer to 5 seconds (5000)
 unsigned long timerDelay = 5000;
 
-void setup()
+String input = "Hallo Bubu, ich hab dich ganz doll lieb <3";
+
+void lcd_setup()
 {
-  Serial.begin(115200);
-  while(!Serial){delay(100);}
-
-  Wire.begin(6, 7);
-
-  int lcd_status = lcd.begin(LCD_COLS, LCD_ROWS);
-  if (lcd_status) // non zero status means it was unsuccesful
+  Wire.begin(LCD_WIRE_ONE,LCD_WIRE_TWO);
+  if(int status = lcd.begin(LCD_COLS, LCD_ROWS))
   {
     Serial.println("ERROR WITH LCD OCCURED");
-    hd44780::fatalError(lcd_status); // does not return
+    hd44780::fatalError(status);
   }
   else{
     Serial.println("LCD UP");
   }
+}
 
-  Serial.println("Beginning WIFI Setup with network.");
-
+void wifi_setup()
+{
   WiFi.begin(ssid, password);
 
   while(WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    Serial.print(".");
   }
-  lcd.print(WiFi.localIP());
+  Serial.println("WIFI READY");
+}
+
+void print_lcd_firstline(const String &input)
+{
+  size_t inputLength = input.length();
+
+  for(size_t i =0; i <= inputLength - LCD_COLS; ++i){
+    lcd.setCursor(0,0);
+    String segment = input.substring(i, i+16);
+    lcd.print(segment);
+    delay(500);
+  }
+  delay(2000);
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  while(!Serial){delay(100);}
+  lcd_setup();
+  wifi_setup();
+  lcd.setCursor(0,1);
+  lcd.print("Dein Hasi <3");
+  //lcd.print(WiFi.localIP());
 }
 
 void loop() {
+  print_lcd_firstline(input);
+}
+
+void network_stuff()
+{
   //Send an HTTP POST request every 10 minutes
   if ((millis() - lastTime) > timerDelay) {
     //Check WiFi connection status
